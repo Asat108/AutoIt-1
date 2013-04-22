@@ -1,0 +1,31 @@
+;;Starts an ASW session
+
+Run("c:\program files\ibm\client access\emulator\pcsws.exe 192.168.254.80.ws")
+Sleep (15000)
+if WinExists ("Signon to AS/400", "") Then
+	WinActivate("Signon to AS/400", "")
+	Send ("{shiftdown}")
+	Send ("{tab}")
+	Send ("{shiftup}")
+	Send ("aswwake")
+	Send ("{tab}")
+	Send ("aswwake23")
+	Send ("{Enter}")
+EndIf
+Sleep (10000)
+WinActivate("Session A - [24 x 80]", "")
+	Send ("aswwake")
+	Send ("{tab}")
+	Send ("aswwake23")
+	Send ("{Enter}")
+	Send ("GO SALES1")
+	Send ("{Enter}")
+	Send ("1")
+	Send ("{Enter}")
+	Sleep (15000)
+	Send ("{F12}")
+	Send ("90")
+	Send ("{Enter}")
+	Sleep (15000)
+	WinClose ("Session A - [24 x 80]", "")
+	

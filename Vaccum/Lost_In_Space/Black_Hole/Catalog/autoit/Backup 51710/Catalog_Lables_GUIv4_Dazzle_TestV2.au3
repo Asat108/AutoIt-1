@@ -1,0 +1,324 @@
+#include <_XMLDomWrapper.au3>
+#include <Array.au3>
+#include <access_ui.au3>
+#include <GUIConstants.au3>
+#include <Debug.au3>
+
+$debugging = True
+_debugSetup ( "Debug!")
+
+;===============================================================================
+;
+; Function Name:    _FileInUse()
+; Description:      Checks if file is in use
+; Parameter(s):     $sFilename = File name
+; Return Value(s):  1 - file in use (@error contains system error code)
+;                   0 - file not in use
+;
+;===============================================================================
+Func _FileInUse($sFilename)
+    Local $aRet, $hFile
+    $aRet = DllCall("Kernel32.dll", "hwnd", "CreateFile", _
+                                    "str", $sFilename, _ ;lpFileName
+                                    "dword", 0x80000000, _ ;dwDesiredAccess = GENERIC_READ
+                                    "dword", 0, _ ;dwShareMode = DO NOT SHARE
+                                    "dword", 0, _ ;lpSecurityAttributes = NULL
+                                    "dword", 3, _ ;dwCreationDisposition = OPEN_EXISTING
+                                    "dword", 128, _ ;dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL
+                                    "hwnd", 0) ;hTemplateFile = NULL
+    $hFile = $aRet[0]
+    If $hFile = -1 Then ;INVALID_HANDLE_VALUE = -1
+        $aRet = DllCall("Kernel32.dll", "int", "GetLastError")
+        SetError($aRet[0])
+        Return 1
+    Else
+        ;close file handle
+        DllCall("Kernel32.dll", "int", "CloseHandle", "hwnd", $hFile)
+        Return 0
+    EndIf
+EndFunc
+;===>
+
+$oMyError = ObjEvent("AutoIt.Error", "MyErrFunc")
+
+Opt("GUIOnEventMode", 1)  ; Change to OnEvent mode 
+$mainwindow = GUICreate("Order Number", 200, 100)
+GUISetOnEvent($GUI_EVENT_CLOSE, "CLOSEClicked")
+$catalogs_to_print = GUICtrlCreateInput ( "Total Number of Catalog's to print", 10,  30, 180, 20)
+$okbutton = GUICtrlCreateButton("Start", 70, 60, 60)
+GUICtrlSetOnEvent($okbutton, "OKButton")
+GUISetState(@SW_SHOW)
+
+While 1
+  Sleep(1000)  ; Idle around
+WEnd
+
+Func OKButton()
+
+$file = "C:\Documents and Settings\michael\Desktop\Catalog\autoit\Testing\labels2.mdb"
+$label = "catalog_label"
+$view = "acViewPreview"
+
+Local $oRS
+Local $oConn
+Local $Dazzle_Folder = "c:\Program Files\Envelope Manager\DAZzle"
+
+
+$oConn = ObjCreate("ADODB.Connection")
+$oRS = ObjCreate("ADODB.Recordset")
+$oConn.Open("Driver={Microsoft Access Driver (*.mdb)};Dbq=labels2.mdb")
+
+Local $oAccess = _AccessOpen($file)
+
+$sql_top = "Select TOP 1 * from CF ORDER BY CF.order DESC"
+
+$oRS.Open($sql_top, $oConn, 1, 3)
+
+$top1 = $oRS.Fields("order").value
+
+$oConn.Close
+
+
+
+$oConn.Open("Driver={Microsoft Access Driver (*.mdb)};Dbq=labels2.mdb")
+
+;msgbox(1, "Top 1", $top1)
+
+; Load new Catalogs to the Access Database
+
+; Check for 
+if $top1 = Chr(0) Then
+	$top1 = 1
+EndIf
+
+$sql = "Select * FROM addy_lookup where OHORNO >"&$top1
+msgbox(1, "SQL Code", $sql)
+
+$oRS.Open($sql, $oConn, 1, 3)
+
+For $iIndex = 1 To $oRS.RecordCount
+	
+	$order_numberUC = $oRS.Fields("OHORNO").value
+	$order_typeUC = $oRS.Fields("OHORDT").value
+	$order_dateUC = $oRS.Fields("OHODAT").value
+	$customer_numUC = $oRS.Fields("OHCUNO").value
+	$customer_address_numUC = $oRS.Fields("ADADNO").value
+	$customer_nameUC = $oRS.Fields("ADNAME").value
+	$customer_address1UC = $oRS.Fields("ADADR1").value
+	$customer_address2UC = $oRS.Fields("ADADR2").value
+	$customer_address3UC = $oRS.Fields("ADADR3").value
+	$customer_address4UC = $oRS.Fields("ADADR4").value
+	$city_zipUC = $oRS.Fields("ADPOCD").value
+	$countryUC = $oRS.Fields("ADCOUN").value
+	
+    $order_number = StringStripWS($order_numberUC, 8)  
+	$order_type = StringStripWS($order_typeUC, 8)  
+	$order_date = StringStripWS($order_dateUC, 8)
+	$customer_num = StringStripWS($customer_numUC, 8)  
+	$customer_address_num = StringStripWS($customer_address_numUC, 8)  
+	$customer_nameUC = StringStripWS($customer_nameUC, 1)
+	$customer_address1UC = StringStripWS($customer_address1UC, 1)
+	$customer_address2UC = StringStripWS($customer_address2UC, 1)
+	$customer_address3UC = StringStripWS($customer_address3UC, 1)
+	$customer_address4UC = StringStripWS($customer_address4UC, 1)
+	$customer_name = StringStripWS($customer_nameUC, 2)
+	$customer_name = StringReplace($customer_name, '"', '')
+	$customer_name = StringReplace($customer_name, "'", "")
+	$customer_address1 = StringStripWS($customer_address1UC, 2)
+	$customer_address2 = StringStripWS($customer_address2UC, 2)
+	$customer_address3 = StringStripWS($customer_address3UC, 2)
+	$customer_address4 = StringStripWS($customer_address4UC, 2)
+	; Do not need to be cleaned but left for completeness
+	;$customer_address2 = StringReplace($customer_address2, '"', '')
+	;$customer_address2 = StringReplace($customer_address2, "'", "")
+	$customer_address3 = StringReplace($customer_address3, '"', '')
+	$customer_address3 = StringReplace($customer_address3, "'", "")
+	; Do not need to be cleaned but left for completeness
+	;$customer_address1 = StringReplace($customer_address1, '"', '')
+	;$customer_address1 = StringReplace($customer_address1, "'", "")
+	$customer_address4 = StringReplace($customer_address4, '"', '')
+	$customer_address4 = StringReplace($customer_address4, "'", "")
+	$city_zipUC = StringReplace($city_zipUC, '"', '')
+	$city_zipUC = StringReplace($city_zipUC, "'", "")
+	$state_zip = StringStripWS($city_zipUC, 8)
+	$city = $customer_address4
+	
+	
+	;Split State and zip fields to two fields
+	$state = StringLeft($state_zip, 2)
+	$zip = StringTrimLeft($state_zip, 2)
+	
+	$country = StringStripWS($countryUC, 8)
+	$oAccess.visible = 0
+	
+
+    $sql_insert = "INSERT INTO [CF] ([order], [Order_Type], [Date], [Cust_Num], [Cust_Name], [Addy_Num], [Address_1], [Address_2], [Address_3], [City], [State], [Zip], [Sent]) Values ('"&$order_number&"','"&$order_type&"','"&$order_date&"','"&$customer_num&"','"&$customer_name&"','"&$customer_address_num&"','"&$customer_address1&"','"&$customer_address2&"','"&$customer_address3&"','"&$city&"','"&$state&"','"&$zip&"',0)"
+	
+	$oArray = ObjCreate("ADODB.Recordset")
+	$oArray.Open($sql_insert, $oConn, 1, 3)
+	$oRS.MoveNext
+	
+Next
+
+
+$oRS.close
+
+$sql2 = "Select * FROM CF where CF.sent = '0' order by CF.order ASC"
+
+$oRS.Open($sql2, $oConn, 1, 3)
+
+;Loop through every record NOT IN USE
+;For $iIndex = 1 To $oRS.RecordCount
+For $iIndex = 1 To GUICtrlRead($catalogs_to_print)
+  $order_numF = $oRS.Fields("order").value
+  $customer_numF = $oRS.Fields("Cust_Num").value
+  $customer_nameF = $oRS.Fields("Cust_Name").value
+  $customer_address1F = $oRS.Fields("Address_1").value
+  $customer_address2F = $oRS.Fields("Address_2").value
+  $customer_address3F = $oRS.Fields("Address_3").value
+  
+  ;Un needed extra field has been renamed to city
+  ;if Not $oRS.Fields("Address_4").value == Chr(0) Then
+  ;$customer_address4F = $oRS.Fields("Address_4").value
+  ;Else
+  ;$customer_address4F = ""
+  ;EndIf
+  $cityF = $oRS.Fields("City").value
+  $stateF = $oRS.Fields("State").value
+  $zipF = $oRS.Fields("Zip").value
+  
+  $XMLfilename = 'verification.xml'
+  
+  $XMLfile = FileOpen($Dazzle_Folder&'\verification.xml', 2)
+
+	If $file = -1 Then
+	
+	MsgBox(0, "Couldn't Open XML File for wrighting", "")
+	
+	ExitLoop
+	EndIf
+   
+  FileWriteLine($XMLfile, '<DAZzle start="DAZ" prompt="NO" autoclose="YES">')
+  FileWriteLine($XMLfile, '<Package ID="'&$order_numF&'">')
+  FileWriteLine($XMLfile, '<ToTitle></ToTitle>')
+  FileWriteLine($XMLfile, '<ToCompany></ToCompany>')
+  FileWriteLine($XMLfile, '<ToAddress1>'&$customer_address1F&'</ToAddress1>')
+  FileWriteLine($XMLfile, '<ToAddress2>'&$customer_address2F&'</ToAddress2>')
+  FileWriteLine($XMLfile, '<ToAddress3>'&$customer_address3F&'</ToAddress3>')
+  FileWriteLine($XMLfile, '<ToAddress4></ToAddress4>')
+  FileWriteLine($XMLfile, '<ToAddress5></ToAddress5>')
+  FileWriteLine($XMLfile, '<ToAddress6></ToAddress6>')
+  FileWriteLine($XMLfile, '<ToCity>'&$cityF&'</ToCity>')
+  FileWriteLine($XMLfile, '<ToState>'&$stateF&'</ToState>')
+  FileWriteLine($XMLfile, '<ToPostalCode>'&$zipF&'</ToPostalCode>')
+  FileWriteLine($XMLfile, '<ToZIP4></ToZIP4>')
+  FileWriteLine($XMLfile, '<ToCountry></ToCountry>')
+  FileWriteLine($XMLfile, '<ToDeliveryPoint></ToDeliveryPoint>')
+  FileWriteLine($XMLfile, '<ToCountry></ToCountry>')
+  FileWriteLine($XMLfile, '</Package>')
+  FileWriteLine($XMLfile, '</DAZzle>')
+  
+  FileClose($XMLfile)
+  
+  sleep (100)
+  
+  $cmd = "dazzle.exe "&$XMLfilename
+  ;MsgBox (0, "About to call Dazzle", "DAZZLE is about to run! "&$cmd)
+  
+  ;$success = RunWait(@ComSpec & " /c " & $cmd, @ScriptDir, @SW_HIDE)
+  $success = Run(@ComSpec & " /c " & $cmd, $Dazzle_Folder, @SW_HIDE)
+  WinWait("Dial-A-ZIP® for Lists", "")
+  WinActivate( "Dial-A-ZIP® for Lists", "")
+  Send("O")
+  
+  _debugOUT( $Dazzle_Folder&"\"&$XMLfilename )
+  While _FileInUse($Dazzle_Folder&"\"&$XMLfilename)
+   _debugOut( "Sleeping while file is open" )
+   Sleep(1000)
+  WEnd
+
+  $sXMLfile = $Dazzle_Folder&'\verification.xml'
+
+  $result = _XMLFileOpen($sXMLFile)
+    
+  $fileOpen = @extended
+  
+  if @error then 
+  MsgBox(0, "Couldn't Open XML File for reading", "") 
+  EndIf
+
+  $customer_address1F = _XMLGetValue ("/DAZzle/Package/ToAddress1")
+  $customer_address2F = _XMLGetValue ("/DAZzle/Package/ToAddress2")
+  $customer_address3F = _XMLGetValue ("/DAZzle/Package/ToAddress3")
+  $cityF = _XMLGetValue ("/DAZzle/Package/ToCity")
+  $stateF = _XMLGetValue ("/DAZzle/Package/ToState")
+  
+  $zipF = _XMLGetValue ("/DAZzle/Package/ToPostalCode")
+  $zipExt = @extended 
+  $response = _XMLGetValue ("/DAZzle/Package/ToReturnCode")
+  $responseExt = @extended 
+  
+  ;msgbox (0, "Repsonse", "The Response code was "&$response[1])
+
+if @error = 0 Then
+
+  if $response[1] = 32 or $response[1] = 31 or $response[1] = 25 Then
+  ;Pre Load Access with correct variables
+  $oAccess.Run("Load_Vars", $customer_nameF, $customer_numF, $customer_address1F[1], $customer_address2F[1], $customer_address3F[1], $cityF[1], $stateF[1], $zipF[1])
+  ;Print Label with previous variables
+  $oAccess.docmd.RunMacro("print", 1)
+  
+  $sql3 = "Update CF Set Sent = 1, response = "&$response[1]&" where CF.order = "&$order_numF
+  ;MsgBox(1 , "Test SQL3", $sql3)
+  $oRS2 = ObjCreate("ADODB.Recordset")
+  $oRS2.Open($sql3, $oConn, 1, 3)
+    
+  Else
+	  
+  ;MsgBox(0, "Address Couldn't Verify", "Address did not verify and threw error "&$response)
+  $sql4 = "Update CF Set Sent = 2, response = "&$response[1]&" where CF.order = "&$order_numF
+  $oRS3 = ObjCreate("ADODB.Recordset")
+  $oRS3.Open($sql4, $oConn, 1, 3)
+  
+  EndIf
+  
+Else
+	_DebugOut( "The Extended code for FileOpen is :"&$fileOpen)
+	_DebugOut( "ZipEXT is setup to:"&$zipExt)
+	_DebugOut( "ResponseEXT is setup to:"&$responseExt )
+	_DebugOut( "Response is setup to:"&$response )
+	Msgbox (0, "Subscript?", @error&" Error code, did not find XML for Order "&$order_numF)
+		
+EndIf
+  
+  $result = ""
+  $oRS.MoveNext
+    
+Next
+
+$oAccess.CloseCurrentDatabase()
+$oConn.Close
+$oConn = 0
+
+
+
+EndFunc
+
+Func MyErrFunc()
+	$HexNumber = Hex($oMyError.number, 8)
+	MsgBox(0, "COM Test", "We intercepted a COM Error !" & @CRLF & @CRLF & _
+			"err.description is: " & @TAB & $oMyError.description & @CRLF & _
+			"err.windescription:" & @TAB & $oMyError.windescription & @CRLF & _
+			"err.number is: " & @TAB & $HexNumber & @CRLF & _
+			"err.lastdllerror is: " & @TAB & $oMyError.lastdllerror & @CRLF & _
+			"err.scriptline is: " & @TAB & $oMyError.scriptline & @CRLF & _
+			"err.source is: " & @TAB & $oMyError.source & @CRLF & _
+			"err.helpfile is: " & @TAB & $oMyError.helpfile & @CRLF & _
+			"err.helpcontext is: " & @TAB & $oMyError.helpcontext _
+			)
+	SetError(1) ; to check for after this function returns
+EndFunc   ;==>MyErrFunc
+
+Func CLOSEClicked()
+   Exit
+EndFunc

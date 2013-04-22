@@ -1,0 +1,28 @@
+$file = FileOpen("mass_copy.TXT", 0)
+
+; Check if file opened for reading OK
+If $file = -1 Then
+    MsgBox(0, "Error", "Unable to open file.")
+    Exit
+EndIf
+
+
+; Read in lines of text until the EOF is reached
+	WinActivate("AddCart", "")
+
+While 1
+    $line = FileReadLine($file)
+    If @error = -1 Then ExitLoop
+	$clean = StringStripWS($line, 8)
+	$array = StringSplit($clean, ",")
+    Send($array[1])
+	SEND("{TAB}")
+	SEND("{TAB}")
+	Sleep(10)
+
+Wend
+
+
+
+
+FileClose($file)
